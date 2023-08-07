@@ -1,0 +1,26 @@
+{
+  "name": "ha-touch-pad",
+  "source": "src/ha-touch-pad.ts",
+  "modern": "dist/ha-touch-pad.js",
+  "browserslist": "> 0.5%, last 2 versions, not dead",
+  "devDependencies": {
+    "@lit-labs/observers": "^2.0.0",
+    "eslint": "^8.44.0",
+    "lit": "^2.7.6",
+    "parcel": "^2.9.3",
+    "prettier": "^2.8.8",
+    "rxjs": "^7.8.1"
+  },
+  "scripts": {
+    "serve": "parcel serve --no-hmr",
+    "watch": "parcel watch --no-hmr",
+    "build": "parcel build --no-source-maps"
+  },
+  "targets": {
+    "modern": {
+      "outputFormat": "global",
+      "optimize": true,
+      "includeNodeModules": true
+    }
+  }
+}
