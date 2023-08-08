@@ -30,6 +30,7 @@ class TouchPad extends LitElement {
   private _startY: number
   private _lastTouch: number
   private _timeout: number
+  private _mouseDown: boolean
 
   private _fireEvent = (action: string) => {
     const config = this._config[`${action}_action`]
@@ -46,17 +47,26 @@ class TouchPad extends LitElement {
     this.dispatchEvent(event)
   }
 
-  private _handleTouchStart = (event: TouchEvent) => {
+  private _handleStart = (event: TouchEvent | MouseEvent) => {
+    const isTouch = event instanceof TouchEvent
     event.preventDefault()
+    event.stopPropagation()
 
-    this._startX = event.changedTouches[0].clientX
-    this._startY = event.changedTouches[0].clientY
+    this._mouseDown = !isTouch
 
+    this._startX = isTouch ? event.changedTouches[0].clientX : event.clientX
+    this._startY = isTouch ? event.changedTouches[0].clientY : event.clientY
     this._circle.style.transition = 'none'
   }
 
-  private _handleTouchMove = (event: TouchEvent) => {
-    const {clientX, clientY} = event.changedTouches[0]
+  private _handleMove = (event: TouchEvent | MouseEvent) => {
+    const isTouch = event instanceof TouchEvent
+    event.preventDefault()
+    event.stopPropagation()
+
+    if (!isTouch && !this._mouseDown) return
+
+    const {clientX, clientY} = isTouch ? event.changedTouches[0] : event
 
     // Bind circle coords to touch container
     const maxDeltaX = (this.offsetWidth - this._circle.offsetWidth) / 2
@@ -69,8 +79,16 @@ class TouchPad extends LitElement {
     this._circle.style.top = `calc(50% + ${top}px)`
   }
 
-  private _handleTouchEnd = (event: TouchEvent) => {
-    const {clientX, clientY} = event.changedTouches[0]
+  private _handleEnd = (event: TouchEvent | MouseEvent) => {
+    const isTouch = event instanceof TouchEvent
+    event.preventDefault()
+    event.stopPropagation()
+
+    this._mouseDown = false
+
+    if (!isTouch && !this._mouseDown) return
+
+    const {clientX, clientY} = isTouch ? event.changedTouches[0] : event
     const {swipe_threshold, tap_threshold, tap_timeout} = this._config
     const rawDeltaX = clientX - this._startX
     const rawDeltaY = clientY - this._startY
@@ -109,13 +127,36 @@ class TouchPad extends LitElement {
       cursor_color: 'var(--secondary-text-color, #727272)',
       swipe_threshold: 50,
       tap_threshold: 5,
-      tap_timeout: 300,
+      tap_timeout: 200,
       ...config,
     }
   }
 
   updated() {
     this._circle = this.shadowRoot?.querySelector('.circle') || new HTMLElement()
+  }
+
+  connectedCallback(): void {
+    super.connectedCallback()
+
+    this.addEventListener('touchstart', this._handleStart)
+    this.addEventListener('touchmove', this._handleMove)
+    this.addEventListener('touchend', this._handleEnd)
+
+    this.addEventListener('mousedown', this._handleStart)
+    window.addEventListener('mousemove', this._handleMove)
+    window.addEventListener('mouseup', this._handleEnd)
+  }
+
+  disconnectedCallback() {
+    this.removeEventListener('touchstart', this._handleStart)
+    this.removeEventListener('touchmove', this._handleMove)
+    this.removeEventListener('touchend', this._handleEnd)
+
+    this.removeEventListener('mousedown', this._handleStart)
+    window.removeEventListener('mousemove', this._handleMove)
+    window.removeEventListener('mouseup', this._handleEnd)
+    super.disconnectedCallback()
   }
 
   render() {
@@ -133,12 +174,7 @@ class TouchPad extends LitElement {
           background-color: ${cursor_color};
         }
       </style>
-      <div
-        class="touchpad"
-        @touchstart=${this._handleTouchStart}
-        @touchend=${this._handleTouchEnd}
-        @touchmove=${this._handleTouchMove}
-      >
+      <div class="touchpad">
         <div class="circle" />
       </div>
     `
