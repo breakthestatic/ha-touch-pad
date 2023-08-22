@@ -18,7 +18,7 @@
   },
   "scripts": {
     "serve": "parcel serve --target demo",
-    "watch": "parcel watch --no-hmr",
+    "watch": "parcel watch --target modern --no-hmr",
     "build": "parcel build --target modern --no-source-maps"
   },
   "targets": {
