@@ -1,0 +1,49 @@
+up_action:
+  action: call-service
+  service: persistent_notification.create
+  data:
+    message: Swipe Up
+down_action:
+  action: call-service
+  service: persistent_notification.create
+  data:
+    message: Swipe Down
+left_action:
+  action: call-service
+  service: persistent_notification.create
+  data:
+    message: Swipe Left
+right_action:
+  action: call-service
+  service: persistent_notification.create
+  data:
+    message: Swipe Right
+corners:
+  top_left:
+    icon: mdi:arrow-left
+    action:
+      action: call-service
+      service: persistent_notification.create
+      data:
+        message: Top Left
+  top_right:
+    icon: mdi:home
+    action:
+      action: call-service
+      service: persistent_notification.create
+      data:
+        message: Top Right
+  bottom_left:
+    icon: mdi:volume-minus
+    action:
+      action: call-service
+      service: persistent_notification.create
+      data:
+        message: Bottom Left
+  bottom_right:
+    icon: mdi:volume-plus
+    action:
+      action: call-service
+      service: persistent_notification.create
+      data:
+        message: Bottom Right

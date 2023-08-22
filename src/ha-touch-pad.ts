@@ -1,7 +1,8 @@
 import {LitElement, html, css} from 'lit'
 import {customElement, property} from 'lit/decorators'
 import {ResizeController} from '@lit-labs/observers/resize-controller'
-import {InternalConfig, HaTouchPadConfig, TouchActionEvent} from './types'
+import {InternalConfig, HaTouchPadConfig, TouchActionEvent, ActionConfig} from './types'
+import baseConfig from './base-config.json'
 
 @customElement('touch-pad')
 class TouchPad extends LitElement {
@@ -10,6 +11,8 @@ class TouchPad extends LitElement {
       position: relative;
       width: 100%;
       padding-bottom: 100%;
+      overflow: hidden;
+      touch-action: none;
     }
     .circle {
       position: absolute;
@@ -18,10 +21,22 @@ class TouchPad extends LitElement {
       left: 50%;
       transform: translate(-50%, -50%);
     }
+    .corner {
+      position: absolute;
+      display: flex;
+    }
+    .corner .icon {
+      width: 50%;
+      height: 50%;
+      margin: auto;
+    }
+    .corner ha-icon {
+      --mdc-icon-size: 100%;
+    }
   `
 
   @property()
-  private _config: InternalConfig
+  private _config: InternalConfig = baseConfig
 
   _resizeController = new ResizeController(this, {})
 
@@ -31,15 +46,13 @@ class TouchPad extends LitElement {
   private _lastTouch: number
   private _timeout: number
 
-  private _fireEvent = (action: string) => {
-    const config = this._config[`${action}_action`]
-
-    if (!config) return
+  private _fireEvent = (action: ActionConfig) => {
+    if (!action) return
 
     const event: TouchActionEvent = new Event('hass-action', {bubbles: true, composed: true})
 
     event.detail = {
-      config: {tap_action: config},
+      config: {tap_action: action},
       action: 'tap',
     }
 
@@ -47,8 +60,6 @@ class TouchPad extends LitElement {
   }
 
   private _handleTouchStart = (event: TouchEvent) => {
-    event.preventDefault()
-
     this._startX = event.changedTouches[0].clientX
     this._startY = event.changedTouches[0].clientY
 
@@ -86,30 +97,29 @@ class TouchPad extends LitElement {
       const currentTimestamp = Date.now()
       clearTimeout(this._timeout)
       if (currentTimestamp - this._lastTouch < tap_timeout) {
-        this._fireEvent('double_tap')
+        this._fireEvent(this._config['double_tap_action'])
       } else {
         this._timeout = setTimeout(() => {
-          this._fireEvent('tap')
+          this._fireEvent(this._config['tap_action'])
           clearTimeout(this._timeout)
         }, tap_timeout)
       }
       this._lastTouch = currentTimestamp
     } else if (deltaX > deltaY && deltaX > swipe_threshold) {
-      this._fireEvent(rawDeltaX > 0 ? 'right' : 'left')
+      this._fireEvent(this._config[rawDeltaX > 0 ? 'right_action' : 'left_action'])
     } else if (deltaY > deltaX && deltaY > swipe_threshold) {
-      this._fireEvent(rawDeltaY > 0 ? 'down' : 'up')
+      this._fireEvent(this._config[rawDeltaY > 0 ? 'down_action' : 'up_action'])
     }
   }
 
-  setConfig(config: HaTouchPadConfig) {
+  private _handleCorner(event: MouseEvent) {
+    const {corner} = (event.currentTarget as HTMLElement).dataset
+    this._fireEvent(this._config.corners[corner].action)
+  }
+
+  setConfig(config: HaTouchPadConfig = {}) {
     this._config = {
-      border_radius: 'var(--ha-card-border-radius, 12px)',
-      background_color: 'var(--secondary-background-color, #e5e5e5)',
-      cursor_size: '40px',
-      cursor_color: 'var(--secondary-text-color, #727272)',
-      swipe_threshold: 50,
-      tap_threshold: 5,
-      tap_timeout: 300,
+      ...baseConfig,
       ...config,
     }
   }
@@ -119,7 +129,15 @@ class TouchPad extends LitElement {
   }
 
   render() {
-    const {border_radius, background_color, cursor_size, cursor_color} = this._config
+    const {
+      border_radius,
+      background_color,
+      cursor_size,
+      cursor_color,
+      corners,
+      corner_color,
+      corner_size,
+    } = this._config
 
     return html`
       <style>
@@ -132,6 +150,31 @@ class TouchPad extends LitElement {
           height: ${cursor_size};
           background-color: ${cursor_color};
         }
+        .corner {
+          width: ${corner_size};
+          height: ${corner_size};
+          background-color: ${corner_color};
+        }
+        .corner[data-corner='top_left'] {
+          top: 0;
+          left: 0;
+          border-bottom-right-radius: ${border_radius};
+        }
+        .corner[data-corner='top_right'] {
+          top: 0;
+          right: 0;
+          border-bottom-left-radius: ${border_radius};
+        }
+        .corner[data-corner='bottom_left'] {
+          bottom: 0;
+          left: 0;
+          border-top-right-radius: ${border_radius};
+        }
+        .corner[data-corner='bottom_right'] {
+          bottom: 0;
+          right: 0;
+          border-top-left-radius: ${border_radius};
+        }
       </style>
       <div
         class="touchpad"
@@ -139,6 +182,18 @@ class TouchPad extends LitElement {
         @touchend=${this._handleTouchEnd}
         @touchmove=${this._handleTouchMove}
       >
+        ${Object.entries(corners || {}).map(
+          ([corner, config]) =>
+            html`<div class="corner" data-corner="${corner}" @click=${this._handleCorner}>
+          ${
+            config?.icon &&
+            html`<div class="icon">
+              <ha-icon icon="${config.icon}"></ha-icon>
+            </div>`
+          }
+          </div>
+        </div>`
+        )}
         <div class="circle" />
       </div>
     `

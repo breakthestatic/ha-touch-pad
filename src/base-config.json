@@ -1,0 +1,12 @@
+{
+  "border_radius": "var(--ha-card-border-radius, 12px)",
+  "background_color": "var(--secondary-background-color, #e5e5e5)",
+  "cursor_size": "40px",
+  "cursor_color": "var(--secondary-text-color, #727272)",
+  "swipe_threshold": 50,
+  "tap_threshold": 5,
+  "tap_timeout": 200,
+  "corner_size": "25%",
+  "corner_color": "rgba(0, 0, 0, 0.25)",
+  "corner_icon_color": "var(--primaru-text-color, #212121)"
+}

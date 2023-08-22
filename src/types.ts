@@ -76,6 +76,17 @@ export type ActionConfig =
   | NoActionConfig
   | CustomActionConfig
 
+export interface Corners {
+  top_left?: CornerConfig
+  top_right?: CornerConfig
+  bottom_left?: CornerConfig
+  bottom_right?: CornerConfig
+}
+export interface CornerConfig {
+  action: ActionConfig
+  icon?: string
+}
+
 export interface InternalConfig {
   swipe_threshold: number
   tap_threshold: number
@@ -84,6 +95,9 @@ export interface InternalConfig {
   border_radius: string
   cursor_size: string
   cursor_color: string
+  corner_size: number | string
+  corner_color: string
+  corners?: Corners
 }
 
 export interface HaTouchPadConfig {
@@ -99,4 +113,7 @@ export interface HaTouchPadConfig {
   left_action?: ActionConfig
   right_action?: ActionConfig
   tap_action?: ActionConfig
+  corner_size?: number | string
+  corner_color?: string
+  corners?: Corners
 }
