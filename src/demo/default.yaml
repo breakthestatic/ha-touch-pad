@@ -18,6 +18,16 @@ right_action:
   service: persistent_notification.create
   data:
     message: Swipe Right
+tap_action:
+  action: call-service
+  service: persistent_notification.create
+  data:
+    message: Tap
+double_tap_action:
+  action: call-service
+  service: persistent_notification.create
+  data:
+    message: Double Tap
 corners:
   top_left:
     icon: mdi:arrow-left

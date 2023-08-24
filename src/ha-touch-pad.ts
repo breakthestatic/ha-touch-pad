@@ -1,7 +1,13 @@
 import {LitElement, html, css} from 'lit'
 import {customElement, property} from 'lit/decorators'
 import {ResizeController} from '@lit-labs/observers/resize-controller'
-import {InternalConfig, HaTouchPadConfig, TouchActionEvent, ActionConfig} from './types'
+import {
+  InternalConfig,
+  HaTouchPadConfig,
+  TouchActionEvent,
+  ActionConfig,
+  TouchPadEvent,
+} from './types'
 import baseConfig from './base-config.json'
 
 @customElement('touch-pad')
@@ -80,7 +86,10 @@ class TouchPad extends LitElement {
     this._circle.style.top = `calc(50% + ${top}px)`
   }
 
-  private _handleTouchEnd = (event: TouchEvent) => {
+  private _handleTouchEnd = (event: TouchPadEvent) => {
+    // Ignore events from corners
+    if (event.target.closest('.corner')) return
+
     const {clientX, clientY} = event.changedTouches[0]
     const {swipe_threshold, tap_threshold, tap_timeout} = this._config
     const rawDeltaX = clientX - this._startX
