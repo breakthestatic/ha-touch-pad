@@ -39,6 +39,9 @@ class TouchPad extends LitElement {
     .corner ha-icon {
       --mdc-icon-size: 100%;
     }
+    ha-icon {
+      fill: currentColor;
+    }
   `
 
   @property()
@@ -145,6 +148,7 @@ class TouchPad extends LitElement {
       cursor_color,
       corners,
       corner_color,
+      corner_icon_color,
       corner_size,
     } = this._config
 
@@ -162,6 +166,7 @@ class TouchPad extends LitElement {
         .corner {
           width: ${corner_size};
           height: ${corner_size};
+          color: ${corner_icon_color};
           background-color: ${corner_color};
         }
         .corner[data-corner='top_left'] {
