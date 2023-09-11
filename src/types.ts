@@ -113,6 +113,7 @@ export interface HaTouchPadConfig {
   left_action?: ActionConfig
   right_action?: ActionConfig
   tap_action?: ActionConfig
+  double_tap_action?: ActionConfig
   corner_size?: number | string
   corner_color?: string
   corners?: Corners
