@@ -123,7 +123,7 @@ class TouchPad extends LitElement {
 
   private _handleCorner(event: MouseEvent) {
     const {corner} = (event.currentTarget as HTMLElement).dataset
-    this._fireEvent(this._config.corners[corner].action)
+    this._fireEvent(this._config.corners[corner].hass_action)
   }
 
   setConfig(config: HaTouchPadConfig = {}) {

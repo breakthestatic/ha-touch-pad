@@ -31,28 +31,28 @@ double_tap_action:
 corners:
   top_left:
     icon: mdi:arrow-left
-    action:
+    hass_action:
       action: call-service
       service: persistent_notification.create
       data:
         message: Top Left
   top_right:
     icon: mdi:home
-    action:
+    hass_action:
       action: call-service
       service: persistent_notification.create
       data:
         message: Top Right
   bottom_left:
     icon: mdi:volume-minus
-    action:
+    hass_action:
       action: call-service
       service: persistent_notification.create
       data:
         message: Bottom Left
   bottom_right:
     icon: mdi:volume-plus
-    action:
+    hass_action:
       action: call-service
       service: persistent_notification.create
       data:

@@ -83,7 +83,7 @@ export interface Corners {
   bottom_right?: CornerConfig
 }
 export interface CornerConfig {
-  action: ActionConfig
+  hass_action: ActionConfig
   icon?: string
 }
 
@@ -95,7 +95,7 @@ export interface InternalConfig {
   border_radius: string
   cursor_size: string
   cursor_color: string
-  corner_size: number | string
+  corner_size: string
   corner_color: string
   corners?: Corners
 }
@@ -114,7 +114,7 @@ export interface HaTouchPadConfig {
   right_action?: ActionConfig
   tap_action?: ActionConfig
   double_tap_action?: ActionConfig
-  corner_size?: number | string
+  corner_size?: string
   corner_color?: string
   corners?: Corners
 }
