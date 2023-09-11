@@ -97,6 +97,7 @@ export interface InternalConfig {
   cursor_color: string
   corner_size: string
   corner_color: string
+  corner_icon_color: string
   corners?: Corners
 }
 
@@ -116,6 +117,7 @@ export interface HaTouchPadConfig {
   double_tap_action?: ActionConfig
   corner_size?: string
   corner_color?: string
+  corner_icon_color?: string
   corners?: Corners
 }
 
