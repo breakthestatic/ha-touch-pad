@@ -1,17 +1,11 @@
 import {LitElement, html, css} from 'lit'
 import {customElement, property} from 'lit/decorators'
 import {ResizeController} from '@lit-labs/observers/resize-controller'
-import {
-  InternalConfig,
-  HaTouchPadConfig,
-  TouchActionEvent,
-  ActionConfig,
-  TouchPadEvent,
-} from './types'
+import {HaTouchPadConfig, TouchActionEvent, ActionConfig, TouchPadEvent} from './types'
 import baseConfig from './base-config.json'
 
 @customElement('touch-pad')
-class TouchPad extends LitElement {
+export class TouchPad extends LitElement {
   static styles = css`
     .touchpad {
       position: relative;
@@ -45,7 +39,7 @@ class TouchPad extends LitElement {
   `
 
   @property()
-  private _config: InternalConfig = baseConfig
+  private _config: HaTouchPadConfig = baseConfig
 
   _resizeController = new ResizeController(this, {})
 
@@ -129,7 +123,7 @@ class TouchPad extends LitElement {
     this._fireEvent(this._config.corners[corner].hass_action)
   }
 
-  setConfig(config: HaTouchPadConfig = {}) {
+  setConfig(config: Partial<HaTouchPadConfig> = {}) {
     this._config = {
       ...baseConfig,
       ...config,

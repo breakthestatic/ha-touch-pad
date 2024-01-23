@@ -87,37 +87,23 @@ export interface CornerConfig {
   icon?: string
 }
 
-export interface InternalConfig {
+export interface HaTouchPadConfig {
   swipe_threshold: number
   tap_threshold: number
-  tap_timeout: number
   background_color: string
   border_radius: string
   cursor_size: string
   cursor_color: string
-  corner_size: string
-  corner_color: string
-  corner_icon_color: string
-  corners?: Corners
-}
-
-export interface HaTouchPadConfig {
-  swipe_threshold?: number
-  tap_threshold?: number
-  background_color?: string
-  border_radius?: string
-  cursor_size?: string
-  cursor_color?: string
-  tap_timeout?: number
+  tap_timeout: number
   up_action?: ActionConfig
   down_action?: ActionConfig
   left_action?: ActionConfig
   right_action?: ActionConfig
   tap_action?: ActionConfig
   double_tap_action?: ActionConfig
-  corner_size?: string
-  corner_color?: string
-  corner_icon_color?: string
+  corner_size: string
+  corner_color: string
+  corner_icon_color: string
   corners?: Corners
 }
 
