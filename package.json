@@ -7,13 +7,13 @@
     "@lit-labs/observers": "^2.0.0",
     "@mdi/js": "^7.2.96",
     "@mdi/svg": "^7.2.96",
-    "@parcel/transformer-sass": "^2.9.3",
-    "@parcel/transformer-yaml": "^2.9.3",
+    "@parcel/transformer-sass": "^2.11.0",
+    "@parcel/transformer-yaml": "^2.11.0",
     "eslint": "^8.44.0",
     "js-yaml": "^4.1.0",
     "lit": "^2.7.6",
     "lodash": "^4.17.21",
-    "parcel": "^2.9.3",
+    "parcel": "^2.11.0",
     "prettier": "^2.8.8"
   },
   "scripts": {
