@@ -105,8 +105,5 @@ export interface HaTouchPadConfig {
   corner_color: string
   corner_icon_color: string
   corners?: Corners
-}
-
-export interface TouchPadEvent extends TouchEvent {
-  target: Element
+  repeat?: number
 }

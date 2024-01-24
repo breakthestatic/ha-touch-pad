@@ -1,7 +1,7 @@
 import {LitElement, html, css} from 'lit'
 import {customElement, property} from 'lit/decorators'
 import {ResizeController} from '@lit-labs/observers/resize-controller'
-import {HaTouchPadConfig, TouchActionEvent, ActionConfig, TouchPadEvent} from './types'
+import {HaTouchPadConfig, TouchActionEvent, ActionConfig} from './types'
 import baseConfig from './base-config.json'
 
 @customElement('touch-pad')
@@ -48,6 +48,8 @@ export class TouchPad extends LitElement {
   private _startY: number
   private _lastTouch: number
   private _timeout: number
+  private _currentAction: string
+  private _holdIntervalId: number
 
   private _fireEvent = (action: ActionConfig) => {
     if (!action) return
@@ -62,6 +64,18 @@ export class TouchPad extends LitElement {
     this.dispatchEvent(event)
   }
 
+  private _determineAction = (deltaX: number, deltaY: number) => {
+    const {swipe_threshold} = this._config
+    const unsignedDeltaX = Math.abs(deltaX)
+    const unsignedDeltaY = Math.abs(deltaY)
+
+    if (unsignedDeltaX > unsignedDeltaY && unsignedDeltaX > swipe_threshold) {
+      return deltaX > 0 ? 'right_action' : 'left_action'
+    } else if (unsignedDeltaY > unsignedDeltaX && unsignedDeltaY > swipe_threshold) {
+      return deltaY > 0 ? 'down_action' : 'up_action'
+    }
+  }
+
   private _handleTouchStart = (event: TouchEvent) => {
     this._startX = event.changedTouches[0].clientX
     this._startY = event.changedTouches[0].clientY
@@ -71,33 +85,39 @@ export class TouchPad extends LitElement {
 
   private _handleTouchMove = (event: TouchEvent) => {
     const {clientX, clientY} = event.changedTouches[0]
+    const deltaX = clientX - this._startX
+    const deltaY = clientY - this._startY
+    const action = this._determineAction(deltaX, deltaY)
 
     // Bind circle coords to touch container
     const maxDeltaX = (this.offsetWidth - this._circle.offsetWidth) / 2
     const maxDeltaY = (this.offsetHeight - this._circle.offsetHeight) / 2
-    const left = Math.max(Math.min(clientX - this._startX, maxDeltaX), -maxDeltaX)
-    const top = Math.max(Math.min(clientY - this._startY, maxDeltaY), -maxDeltaY)
+    const left = Math.max(Math.min(deltaX, maxDeltaX), -maxDeltaX)
+    const top = Math.max(Math.min(deltaY, maxDeltaY), -maxDeltaY)
 
     // Update circle as movement occurs
     this._circle.style.left = `calc(50% + ${left}px)`
     this._circle.style.top = `calc(50% + ${top}px)`
+
+    if (this._config.repeat && action && action !== this._currentAction) {
+      this._currentAction = action
+      clearInterval(this._holdIntervalId)
+
+      this._fireEvent(this._config[action])
+      this._holdIntervalId = setInterval(() => {
+        this._fireEvent(this._config[action])
+      }, this._config.repeat)
+    }
   }
 
-  private _handleTouchEnd = (event: TouchPadEvent) => {
-    // Ignore events from corners
-    if (event.target.closest('.corner')) return
-
+  private _handleTouchEnd = (event: TouchEvent) => {
     const {clientX, clientY} = event.changedTouches[0]
-    const {swipe_threshold, tap_threshold, tap_timeout} = this._config
+    const {tap_threshold, tap_timeout} = this._config
     const rawDeltaX = clientX - this._startX
     const rawDeltaY = clientY - this._startY
     const deltaX = Math.abs(rawDeltaX)
     const deltaY = Math.abs(rawDeltaY)
-
-    // Animate circle back to center after gesture completes
-    this._circle.style.transition = 'top 0.5s, left 0.5s'
-    this._circle.style.left = '50%'
-    this._circle.style.top = '50%'
+    const action = this._determineAction(deltaX, deltaY)
 
     if (deltaX < tap_threshold && deltaY < tap_threshold) {
       const currentTimestamp = Date.now()
@@ -111,16 +131,34 @@ export class TouchPad extends LitElement {
         }, tap_timeout)
       }
       this._lastTouch = currentTimestamp
-    } else if (deltaX > deltaY && deltaX > swipe_threshold) {
-      this._fireEvent(this._config[rawDeltaX > 0 ? 'right_action' : 'left_action'])
-    } else if (deltaY > deltaX && deltaY > swipe_threshold) {
-      this._fireEvent(this._config[rawDeltaY > 0 ? 'down_action' : 'up_action'])
+    } else if (action && !this._holdIntervalId) {
+      this._fireEvent(this._config[action])
     }
+
+    this._resetState()
   }
 
-  private _handleCorner(event: MouseEvent) {
+  private _handleCornerMove = (event: TouchEvent) => {
+    event.stopPropagation()
+  }
+
+  private _handleCorner = (event: TouchEvent) => {
+    event.stopPropagation()
+
     const {corner} = (event.currentTarget as HTMLElement).dataset
     this._fireEvent(this._config.corners[corner].hass_action)
+
+    this._resetState()
+  }
+
+  private _resetState = () => {
+    // Animate circle back to center after gesture completes
+    this._circle.style.transition = 'top 0.5s, left 0.5s'
+    this._circle.style.left = '50%'
+    this._circle.style.top = '50%'
+
+    clearInterval(this._holdIntervalId)
+    this._currentAction = null
   }
 
   setConfig(config: Partial<HaTouchPadConfig> = {}) {
@@ -192,15 +230,17 @@ export class TouchPad extends LitElement {
       >
         ${Object.entries(corners || {}).map(
           ([corner, config]) =>
-            html`<div class="corner" data-corner="${corner}" @click=${this._handleCorner}>
-          ${
-            config?.icon &&
-            html`<div class="icon">
-              <ha-icon icon="${config.icon}"></ha-icon>
-            </div>`
-          }
-          </div>
-        </div>`
+            html`
+              <div
+                class="corner"
+                data-corner="${corner}"
+                @touchend=${this._handleCorner}
+                @touchmove=${this._handleCornerMove}
+              >
+                ${config?.icon &&
+                html` <div class="icon"><ha-icon icon="${config.icon}"></ha-icon></div> `}
+              </div>
+            `
         )}
         <div class="circle" />
       </div>
