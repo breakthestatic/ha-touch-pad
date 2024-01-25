@@ -113,13 +113,13 @@ export class TouchPad extends LitElement {
   private _handleTouchEnd = (event: TouchEvent) => {
     const {clientX, clientY} = event.changedTouches[0]
     const {tap_threshold, tap_timeout} = this._config
-    const rawDeltaX = clientX - this._startX
-    const rawDeltaY = clientY - this._startY
-    const deltaX = Math.abs(rawDeltaX)
-    const deltaY = Math.abs(rawDeltaY)
+    const deltaX = clientX - this._startX
+    const deltaY = clientY - this._startY
+    const unsignedDeltaX = Math.abs(deltaX)
+    const unsignedDeltaY = Math.abs(deltaY)
     const action = this._determineAction(deltaX, deltaY)
 
-    if (deltaX < tap_threshold && deltaY < tap_threshold) {
+    if (unsignedDeltaX < tap_threshold && unsignedDeltaY < tap_threshold) {
       const currentTimestamp = Date.now()
       clearTimeout(this._timeout)
       if (currentTimestamp - this._lastTouch < tap_timeout) {
