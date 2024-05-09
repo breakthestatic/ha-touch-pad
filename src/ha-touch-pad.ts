@@ -1,4 +1,4 @@
-import {LitElement, html, css} from 'lit'
+import {LitElement, html, css, nothing} from 'lit'
 import {customElement, property} from 'lit/decorators'
 import {ResizeController} from '@lit-labs/observers/resize-controller'
 import {HaTouchPadConfig, TouchActionEvent, ActionConfig} from './types'
@@ -36,6 +36,27 @@ export class TouchPad extends LitElement {
     ha-icon {
       fill: currentColor;
     }
+    .feedback {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      pointer-events: none;
+    }
+    .feedback ha-icon {
+      opacity: 0;
+      position: absolute;
+    }
+    @keyframes feedback-fade {
+      0%,
+      100% {
+        opacity: 0;
+      }
+      50% {
+        opacity: 1;
+      }
+    }
   `
 
   @property()
@@ -51,6 +72,15 @@ export class TouchPad extends LitElement {
   private _currentAction: string
   private _holdIntervalId: number
 
+  private _resetAnimation = (element: HTMLElement) => {
+    element.style.animation = 'none'
+    element.offsetHeight /* trigger reflow */
+    element.style.animation = null
+  }
+
+  private _getActionName = (action: ActionConfig) =>
+    Object.entries(this._config).find(([, value]) => value === action)?.[0]
+
   private _fireEvent = (action: ActionConfig) => {
     if (!action) return
 
@@ -62,6 +92,16 @@ export class TouchPad extends LitElement {
     }
 
     this.dispatchEvent(event)
+
+    if (this._config.visual_feedback) {
+      const actionName = this._getActionName(action)
+      const feedbackElement = this.shadowRoot?.querySelector(`.feedback .${actionName}`)
+
+      if (feedbackElement instanceof HTMLElement) {
+        this._resetAnimation(feedbackElement)
+        feedbackElement.style.animation = `feedback-fade 0.5s linear`
+      }
+    }
   }
 
   private _determineAction = (deltaX: number, deltaY: number) => {
@@ -103,7 +143,6 @@ export class TouchPad extends LitElement {
       this._currentAction = action
       clearInterval(this._holdIntervalId)
 
-      this._fireEvent(this._config[action])
       this._holdIntervalId = setInterval(() => {
         this._fireEvent(this._config[action])
       }, this._config.repeat)
@@ -118,20 +157,21 @@ export class TouchPad extends LitElement {
     const unsignedDeltaX = Math.abs(deltaX)
     const unsignedDeltaY = Math.abs(deltaY)
     const action = this._determineAction(deltaX, deltaY)
+    const delay = this._config.double_tap_action ? tap_timeout : 0
 
     if (unsignedDeltaX < tap_threshold && unsignedDeltaY < tap_threshold) {
       const currentTimestamp = Date.now()
       clearTimeout(this._timeout)
-      if (currentTimestamp - this._lastTouch < tap_timeout) {
+      if (currentTimestamp - this._lastTouch < delay) {
         this._fireEvent(this._config['double_tap_action'])
       } else {
         this._timeout = setTimeout(() => {
           this._fireEvent(this._config['tap_action'])
           clearTimeout(this._timeout)
-        }, tap_timeout)
+        }, delay)
       }
       this._lastTouch = currentTimestamp
-    } else if (action && !this._holdIntervalId) {
+    } else if (action) {
       this._fireEvent(this._config[action])
     }
 
@@ -182,6 +222,7 @@ export class TouchPad extends LitElement {
       corner_color,
       corner_icon_color,
       corner_size,
+      visual_feedback,
     } = this._config
 
     return html`
@@ -221,6 +262,10 @@ export class TouchPad extends LitElement {
           right: 0;
           border-top-left-radius: ${border_radius};
         }
+        .feedback ha-icon {
+          color: ${visual_feedback?.color || cursor_color};
+          width: ${visual_feedback?.size || '100%'};
+        }
       </style>
       <div
         class="touchpad"
@@ -242,7 +287,17 @@ export class TouchPad extends LitElement {
               </div>
             `
         )}
-        <div class="circle" />
+        <div class="circle"></div>
+        ${visual_feedback
+          ? html` <div class="feedback">
+              <ha-icon class="up_action" icon="mdi:arrow-up"></ha-icon>
+              <ha-icon class="down_action" icon="mdi:arrow-down"></ha-icon>
+              <ha-icon class="left_action" icon="mdi:arrow-left"></ha-icon>
+              <ha-icon class="right_action" icon="mdi:arrow-right"></ha-icon>
+              <ha-icon class="tap_action" icon="mdi:gesture-tap"></ha-icon>
+              <ha-icon class="double_tap_action" icon="mdi:gesture-double-tap"></ha-icon>
+            </div>`
+          : nothing}
       </div>
     `
   }

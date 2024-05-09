@@ -57,3 +57,5 @@ corners:
       service: persistent_notification.create
       data:
         message: Bottom Right
+repeat: 500
+visual_feedback: {}

@@ -45,6 +45,7 @@ up_action:
 | corner_color      | string                                                            | `rgba(0, 0, 0, 0.25)`                        | The background color of the corner buttons. Accepts any valid css `background-color` value.                                                                                                                                                                                                                                                       |
 | corner_icon_color | string                                                            | `var(--primaru-text-color, #212121)`         | The color of the corner button icons. Accepts any valid css `color` value.                                                                                                                                                                                                                                                                        |
 | corners           | [Corners](#corners)                                               |                                              | Configuration for the corner buttons.                                                                                                                                                                                                                                                                                                             |
+| visual_feedback   | [VisualFeedbackConfig](#visualfeedbackconfig)                     |                                              | Shows visual feedback when performing a gesture. See config for [VisualFeedback](#visualfeedbackconfig) for customization options                                                                                                                                                                                                                 |
 
 #### Corners:
 
@@ -61,6 +62,13 @@ up_action:
 | ----------- | ----------------------------------------------------------------- | ---------------------------------------------------------------------------------------------- |
 | icon        | string                                                            | The icon to render within the corner button. Accepts any valid `ha-icon` name, e.g. `mdi:home` |
 | hass_action | [ActionConfig](https://www.home-assistant.io/dashboards/actions/) | The Home Assistant action to perform when tapping the button.                                  |
+
+#### VisualFeedbackConfig:
+
+| Name  | Type   | Default                           | Description                                                          |
+| ----- | ------ | --------------------------------- | -------------------------------------------------------------------- |
+| color | string | Follows configured `cursor_color` | The color of the feedback icon. Accepts any valid css `color` value. |
+| size  | string | `100%`                            | The size of the feedback icon. Accepts any valid css `width` value.  |
 
 ### Example:
 
