@@ -87,6 +87,11 @@ export interface CornerConfig {
   icon?: string
 }
 
+export interface VisualFeedbackConfig {
+  size?: number
+  color?: string
+}
+
 export interface HaTouchPadConfig {
   swipe_threshold: number
   tap_threshold: number
@@ -105,8 +110,6 @@ export interface HaTouchPadConfig {
   corner_color: string
   corner_icon_color: string
   corners?: Corners
-}
-
-export interface TouchPadEvent extends TouchEvent {
-  target: Element
+  repeat?: number
+  visual_feedback?: VisualFeedbackConfig
 }
