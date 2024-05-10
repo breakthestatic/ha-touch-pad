@@ -30,11 +30,9 @@ export class TouchPad extends LitElement {
       height: 50%;
       margin: auto;
     }
-    .corner ha-icon {
-      --mdc-icon-size: 100%;
-    }
     ha-icon {
       fill: currentColor;
+      --mdc-icon-size: 100%;
     }
     .feedback {
       position: absolute;
@@ -70,7 +68,8 @@ export class TouchPad extends LitElement {
   private _lastTouch: number
   private _timeout: number
   private _currentAction: string
-  private _holdIntervalId: number
+  private _holdIntervalId: number | undefined
+  private _repeatDelayTimeoutId: number | undefined
 
   private _resetAnimation = (element: HTMLElement) => {
     element.style.animation = 'none'
@@ -128,6 +127,7 @@ export class TouchPad extends LitElement {
     const deltaX = clientX - this._startX
     const deltaY = clientY - this._startY
     const action = this._determineAction(deltaX, deltaY)
+    const {repeat} = this._config
 
     // Bind circle coords to touch container
     const maxDeltaX = (this.offsetWidth - this._circle.offsetWidth) / 2
@@ -139,13 +139,22 @@ export class TouchPad extends LitElement {
     this._circle.style.left = `calc(50% + ${left}px)`
     this._circle.style.top = `calc(50% + ${top}px)`
 
-    if (this._config.repeat && action && action !== this._currentAction) {
-      this._currentAction = action
-      clearInterval(this._holdIntervalId)
+    if (repeat && action && action !== this._currentAction) {
+      const repeatInterval = typeof repeat === 'number' ? repeat : repeat.interval
+      const repeatDelay = typeof repeat === 'number' ? repeat : repeat.delay
 
-      this._holdIntervalId = setInterval(() => {
+      this._currentAction = action
+
+      clearInterval(this._holdIntervalId)
+      clearTimeout(this._repeatDelayTimeoutId)
+
+      this._repeatDelayTimeoutId = setTimeout(() => {
         this._fireEvent(this._config[action])
-      }, this._config.repeat)
+
+        this._holdIntervalId = setInterval(() => {
+          this._fireEvent(this._config[action])
+        }, repeatInterval)
+      }, repeatDelay)
     }
   }
 
@@ -171,7 +180,7 @@ export class TouchPad extends LitElement {
         }, delay)
       }
       this._lastTouch = currentTimestamp
-    } else if (action) {
+    } else if (action && !this._holdIntervalId) {
       this._fireEvent(this._config[action])
     }
 
@@ -198,6 +207,11 @@ export class TouchPad extends LitElement {
     this._circle.style.top = '50%'
 
     clearInterval(this._holdIntervalId)
+    this._holdIntervalId = undefined
+
+    clearTimeout(this._repeatDelayTimeoutId)
+    this._repeatDelayTimeoutId = undefined
+
     this._currentAction = null
   }
 
