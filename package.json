@@ -14,12 +14,14 @@
     "lit": "^2.7.6",
     "lodash": "^4.17.21",
     "parcel": "^2.11.0",
-    "prettier": "^2.8.8"
+    "prettier": "^2.8.8",
+    "rimraf": "^5.0.6"
   },
   "scripts": {
     "serve": "parcel serve --target demo",
     "watch": "parcel watch --target modern --no-hmr",
-    "build": "parcel build --target modern --no-source-maps"
+    "prebuild": "rimraf dist",
+    "build": "parcel build --target modern --no-source-maps --no-cache"
   },
   "targets": {
     "demo": {
