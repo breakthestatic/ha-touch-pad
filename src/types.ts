@@ -92,6 +92,11 @@ export interface VisualFeedbackConfig {
   color?: string
 }
 
+export interface RepeatConfig {
+  delay: number
+  interval: number
+}
+
 export interface HaTouchPadConfig {
   swipe_threshold: number
   tap_threshold: number
@@ -110,6 +115,6 @@ export interface HaTouchPadConfig {
   corner_color: string
   corner_icon_color: string
   corners?: Corners
-  repeat?: number
+  repeat?: RepeatConfig | number
   visual_feedback?: VisualFeedbackConfig
 }
