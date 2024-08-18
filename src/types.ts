@@ -76,27 +76,45 @@ export type ActionConfig =
   | NoActionConfig
   | CustomActionConfig
 
-export interface InternalConfig {
+export interface Corners {
+  top_left?: CornerConfig
+  top_right?: CornerConfig
+  bottom_left?: CornerConfig
+  bottom_right?: CornerConfig
+}
+export interface CornerConfig {
+  hass_action: ActionConfig
+  icon?: string
+}
+
+export interface VisualFeedbackConfig {
+  size?: number
+  color?: string
+}
+
+export interface RepeatConfig {
+  delay: number
+  interval: number
+}
+
+export interface HaTouchPadConfig {
   swipe_threshold: number
   tap_threshold: number
-  tap_timeout: number
   background_color: string
   border_radius: string
   cursor_size: string
   cursor_color: string
-}
-
-export interface HaTouchPadConfig {
-  swipe_threshold?: number
-  tap_threshold?: number
-  background_color?: string
-  border_radius?: string
-  cursor_size?: string
-  cursor_color?: string
-  tap_timeout?: number
+  tap_timeout: number
   up_action?: ActionConfig
   down_action?: ActionConfig
   left_action?: ActionConfig
   right_action?: ActionConfig
   tap_action?: ActionConfig
+  double_tap_action?: ActionConfig
+  corner_size: string
+  corner_color: string
+  corner_icon_color: string
+  corners?: Corners
+  repeat?: RepeatConfig | number
+  visual_feedback?: VisualFeedbackConfig
 }

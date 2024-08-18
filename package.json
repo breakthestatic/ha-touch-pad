@@ -5,18 +5,29 @@
   "browserslist": "> 0.5%, last 2 versions, not dead",
   "devDependencies": {
     "@lit-labs/observers": "^2.0.0",
+    "@mdi/js": "^7.2.96",
+    "@mdi/svg": "^7.2.96",
+    "@parcel/transformer-sass": "^2.11.0",
+    "@parcel/transformer-yaml": "^2.11.0",
     "eslint": "^8.44.0",
+    "js-yaml": "^4.1.0",
     "lit": "^2.7.6",
-    "parcel": "^2.9.3",
+    "lodash": "^4.17.21",
+    "parcel": "^2.11.0",
     "prettier": "^2.8.8",
-    "rxjs": "^7.8.1"
+    "rimraf": "^5.0.6"
   },
   "scripts": {
-    "serve": "parcel serve --no-hmr",
-    "watch": "parcel watch --no-hmr",
-    "build": "parcel build --no-source-maps"
+    "serve": "parcel serve --target demo",
+    "watch": "parcel watch --target modern --no-hmr",
+    "prebuild": "rimraf dist",
+    "build": "parcel build --target modern --no-source-maps --no-cache"
   },
   "targets": {
+    "demo": {
+      "source": "src/demo/index.html",
+      "includeNodeModules": true
+    },
     "modern": {
       "outputFormat": "global",
       "optimize": true,
