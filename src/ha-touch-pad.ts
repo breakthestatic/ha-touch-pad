@@ -1,18 +1,15 @@
-import {LitElement, html, css, nothing} from 'lit'
+import {LitElement, html, css} from 'lit'
 import {customElement, property} from 'lit/decorators'
 import {ResizeController} from '@lit-labs/observers/resize-controller'
-import {HaTouchPadConfig, TouchActionEvent, ActionConfig} from './types'
-import baseConfig from './base-config.json'
+import {InternalConfig, HaTouchPadConfig, TouchActionEvent} from './types'
 
 @customElement('touch-pad')
-export class TouchPad extends LitElement {
+class TouchPad extends LitElement {
   static styles = css`
     .touchpad {
       position: relative;
       width: 100%;
       padding-bottom: 100%;
-      overflow: hidden;
-      touch-action: none;
     }
     .circle {
       position: absolute;
@@ -21,44 +18,10 @@ export class TouchPad extends LitElement {
       left: 50%;
       transform: translate(-50%, -50%);
     }
-    .corner {
-      position: absolute;
-      display: flex;
-    }
-    .corner .icon {
-      width: 50%;
-      height: 50%;
-      margin: auto;
-    }
-    ha-icon {
-      fill: currentColor;
-      --mdc-icon-size: 100%;
-    }
-    .feedback {
-      position: absolute;
-      inset: 0;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      pointer-events: none;
-    }
-    .feedback ha-icon {
-      opacity: 0;
-      position: absolute;
-    }
-    @keyframes feedback-fade {
-      0%,
-      100% {
-        opacity: 0;
-      }
-      50% {
-        opacity: 1;
-      }
-    }
   `
 
   @property()
-  private _config: HaTouchPadConfig = baseConfig
+  private _config: InternalConfig
 
   _resizeController = new ResizeController(this, {})
 
@@ -67,157 +30,104 @@ export class TouchPad extends LitElement {
   private _startY: number
   private _lastTouch: number
   private _timeout: number
-  private _currentAction: string
-  private _holdIntervalId: number | undefined
-  private _repeatDelayTimeoutId: number | undefined
+  private _mouseDown: boolean
 
-  private _resetAnimation = (element: HTMLElement) => {
-    element.style.animation = 'none'
-    element.offsetHeight /* trigger reflow */
-    element.style.animation = null
-  }
+  private _fireEvent = (action: string) => {
+    const config = this._config[`${action}_action`]
 
-  private _getActionName = (action: ActionConfig) =>
-    Object.entries(this._config).find(([, value]) => value === action)?.[0]
-
-  private _fireEvent = (action: ActionConfig) => {
-    if (!action) return
+    if (!config) return
 
     const event: TouchActionEvent = new Event('hass-action', {bubbles: true, composed: true})
 
     event.detail = {
-      config: {tap_action: action},
+      config: {tap_action: config},
       action: 'tap',
     }
 
     this.dispatchEvent(event)
-
-    if (this._config.visual_feedback) {
-      const actionName = this._getActionName(action)
-      const feedbackElement = this.shadowRoot?.querySelector(`.feedback .${actionName}`)
-
-      if (feedbackElement instanceof HTMLElement) {
-        this._resetAnimation(feedbackElement)
-        feedbackElement.style.animation = `feedback-fade 0.5s linear`
-      }
-    }
   }
 
-  private _determineAction = (deltaX: number, deltaY: number) => {
-    const {swipe_threshold} = this._config
-    const unsignedDeltaX = Math.abs(deltaX)
-    const unsignedDeltaY = Math.abs(deltaY)
+  private _handleStart = (event: TouchEvent | MouseEvent) => {
+    const isTouch = event instanceof TouchEvent
+    event.preventDefault()
+    event.stopPropagation()
 
-    if (unsignedDeltaX > unsignedDeltaY && unsignedDeltaX > swipe_threshold) {
-      return deltaX > 0 ? 'right_action' : 'left_action'
-    } else if (unsignedDeltaY > unsignedDeltaX && unsignedDeltaY > swipe_threshold) {
-      return deltaY > 0 ? 'down_action' : 'up_action'
-    }
-  }
+    this._mouseDown = !isTouch
 
-  private _handleTouchStart = (event: TouchEvent) => {
-    this._startX = event.changedTouches[0].clientX
-    this._startY = event.changedTouches[0].clientY
-
+    this._startX = isTouch ? event.changedTouches[0].clientX : event.clientX
+    this._startY = isTouch ? event.changedTouches[0].clientY : event.clientY
     this._circle.style.transition = 'none'
   }
 
-  private _handleTouchMove = (event: TouchEvent) => {
-    const {clientX, clientY} = event.changedTouches[0]
-    const deltaX = clientX - this._startX
-    const deltaY = clientY - this._startY
-    const action = this._determineAction(deltaX, deltaY)
-    const {repeat} = this._config
+  private _handleMove = (event: TouchEvent | MouseEvent) => {
+    const isTouch = event instanceof TouchEvent
+    event.preventDefault()
+    event.stopPropagation()
+
+    if (!isTouch && !this._mouseDown) return
+
+    const {clientX, clientY} = isTouch ? event.changedTouches[0] : event
 
     // Bind circle coords to touch container
     const maxDeltaX = (this.offsetWidth - this._circle.offsetWidth) / 2
     const maxDeltaY = (this.offsetHeight - this._circle.offsetHeight) / 2
-    const left = Math.max(Math.min(deltaX, maxDeltaX), -maxDeltaX)
-    const top = Math.max(Math.min(deltaY, maxDeltaY), -maxDeltaY)
+    const left = Math.max(Math.min(clientX - this._startX, maxDeltaX), -maxDeltaX)
+    const top = Math.max(Math.min(clientY - this._startY, maxDeltaY), -maxDeltaY)
 
     // Update circle as movement occurs
     this._circle.style.left = `calc(50% + ${left}px)`
     this._circle.style.top = `calc(50% + ${top}px)`
-
-    if (repeat && action && action !== this._currentAction) {
-      const repeatInterval = typeof repeat === 'number' ? repeat : repeat.interval
-      const repeatDelay = typeof repeat === 'number' ? repeat : repeat.delay
-
-      this._currentAction = action
-
-      clearInterval(this._holdIntervalId)
-      clearTimeout(this._repeatDelayTimeoutId)
-
-      this._repeatDelayTimeoutId = setTimeout(() => {
-        this._fireEvent(this._config[action])
-
-        this._holdIntervalId = setInterval(() => {
-          this._fireEvent(this._config[action])
-        }, repeatInterval)
-      }, repeatDelay)
-    }
   }
 
-  private _handleTouchEnd = (event: TouchEvent) => {
-    const {clientX, clientY} = event.changedTouches[0]
-    const {tap_threshold, tap_timeout} = this._config
-    const deltaX = clientX - this._startX
-    const deltaY = clientY - this._startY
-    const unsignedDeltaX = Math.abs(deltaX)
-    const unsignedDeltaY = Math.abs(deltaY)
-    const action = this._determineAction(deltaX, deltaY)
-    const delay = this._config.double_tap_action ? tap_timeout : 0
-
-    if (unsignedDeltaX < tap_threshold && unsignedDeltaY < tap_threshold) {
-      const currentTimestamp = Date.now()
-      clearTimeout(this._timeout)
-      if (currentTimestamp - this._lastTouch < delay) {
-        this._fireEvent(this._config['double_tap_action'])
-      } else {
-        this._timeout = setTimeout(() => {
-          this._fireEvent(this._config['tap_action'])
-          clearTimeout(this._timeout)
-        }, delay)
-      }
-      this._lastTouch = currentTimestamp
-    } else if (action && !this._holdIntervalId) {
-      this._fireEvent(this._config[action])
-    }
-
-    this._resetState()
-  }
-
-  private _handleCornerMove = (event: TouchEvent) => {
-    event.stopPropagation()
-  }
-
-  private _handleCorner = (event: TouchEvent) => {
+  private _handleEnd = (event: TouchEvent | MouseEvent) => {
+    const isTouch = event instanceof TouchEvent
+    event.preventDefault()
     event.stopPropagation()
 
-    const {corner} = (event.currentTarget as HTMLElement).dataset
-    this._fireEvent(this._config.corners[corner].hass_action)
+    this._mouseDown = false
 
-    this._resetState()
-  }
+    if (!isTouch && !this._mouseDown) return
 
-  private _resetState = () => {
+    const {clientX, clientY} = isTouch ? event.changedTouches[0] : event
+    const {swipe_threshold, tap_threshold, tap_timeout} = this._config
+    const rawDeltaX = clientX - this._startX
+    const rawDeltaY = clientY - this._startY
+    const deltaX = Math.abs(rawDeltaX)
+    const deltaY = Math.abs(rawDeltaY)
+
     // Animate circle back to center after gesture completes
     this._circle.style.transition = 'top 0.5s, left 0.5s'
     this._circle.style.left = '50%'
     this._circle.style.top = '50%'
 
-    clearInterval(this._holdIntervalId)
-    this._holdIntervalId = undefined
-
-    clearTimeout(this._repeatDelayTimeoutId)
-    this._repeatDelayTimeoutId = undefined
-
-    this._currentAction = null
+    if (deltaX < tap_threshold && deltaY < tap_threshold) {
+      const currentTimestamp = Date.now()
+      clearTimeout(this._timeout)
+      if (currentTimestamp - this._lastTouch < tap_timeout) {
+        this._fireEvent('double_tap')
+      } else {
+        this._timeout = setTimeout(() => {
+          this._fireEvent('tap')
+          clearTimeout(this._timeout)
+        }, tap_timeout)
+      }
+      this._lastTouch = currentTimestamp
+    } else if (deltaX > deltaY && deltaX > swipe_threshold) {
+      this._fireEvent(rawDeltaX > 0 ? 'right' : 'left')
+    } else if (deltaY > deltaX && deltaY > swipe_threshold) {
+      this._fireEvent(rawDeltaY > 0 ? 'down' : 'up')
+    }
   }
 
-  setConfig(config: Partial<HaTouchPadConfig> = {}) {
+  setConfig(config: HaTouchPadConfig) {
     this._config = {
-      ...baseConfig,
+      border_radius: 'var(--ha-card-border-radius, 12px)',
+      background_color: 'var(--secondary-background-color, #e5e5e5)',
+      cursor_size: '40px',
+      cursor_color: 'var(--secondary-text-color, #727272)',
+      swipe_threshold: 50,
+      tap_threshold: 5,
+      tap_timeout: 200,
       ...config,
     }
   }
@@ -226,18 +136,31 @@ export class TouchPad extends LitElement {
     this._circle = this.shadowRoot?.querySelector('.circle') || new HTMLElement()
   }
 
+  connectedCallback(): void {
+    super.connectedCallback()
+
+    this.addEventListener('touchstart', this._handleStart)
+    this.addEventListener('touchmove', this._handleMove)
+    this.addEventListener('touchend', this._handleEnd)
+
+    this.addEventListener('mousedown', this._handleStart)
+    window.addEventListener('mousemove', this._handleMove)
+    window.addEventListener('mouseup', this._handleEnd)
+  }
+
+  disconnectedCallback() {
+    this.removeEventListener('touchstart', this._handleStart)
+    this.removeEventListener('touchmove', this._handleMove)
+    this.removeEventListener('touchend', this._handleEnd)
+
+    this.removeEventListener('mousedown', this._handleStart)
+    window.removeEventListener('mousemove', this._handleMove)
+    window.removeEventListener('mouseup', this._handleEnd)
+    super.disconnectedCallback()
+  }
+
   render() {
-    const {
-      border_radius,
-      background_color,
-      cursor_size,
-      cursor_color,
-      corners,
-      corner_color,
-      corner_icon_color,
-      corner_size,
-      visual_feedback,
-    } = this._config
+    const {border_radius, background_color, cursor_size, cursor_color} = this._config
 
     return html`
       <style>
@@ -250,68 +173,9 @@ export class TouchPad extends LitElement {
           height: ${cursor_size};
           background-color: ${cursor_color};
         }
-        .corner {
-          width: ${corner_size};
-          height: ${corner_size};
-          color: ${corner_icon_color};
-          background-color: ${corner_color};
-        }
-        .corner[data-corner='top_left'] {
-          top: 0;
-          left: 0;
-          border-bottom-right-radius: ${border_radius};
-        }
-        .corner[data-corner='top_right'] {
-          top: 0;
-          right: 0;
-          border-bottom-left-radius: ${border_radius};
-        }
-        .corner[data-corner='bottom_left'] {
-          bottom: 0;
-          left: 0;
-          border-top-right-radius: ${border_radius};
-        }
-        .corner[data-corner='bottom_right'] {
-          bottom: 0;
-          right: 0;
-          border-top-left-radius: ${border_radius};
-        }
-        .feedback ha-icon {
-          color: ${visual_feedback?.color || cursor_color};
-          width: ${visual_feedback?.size || '100%'};
-        }
       </style>
-      <div
-        class="touchpad"
-        @touchstart=${this._handleTouchStart}
-        @touchend=${this._handleTouchEnd}
-        @touchmove=${this._handleTouchMove}
-      >
-        ${Object.entries(corners || {}).map(
-          ([corner, config]) =>
-            html`
-              <div
-                class="corner"
-                data-corner="${corner}"
-                @touchend=${this._handleCorner}
-                @touchmove=${this._handleCornerMove}
-              >
-                ${config?.icon &&
-                html` <div class="icon"><ha-icon icon="${config.icon}"></ha-icon></div> `}
-              </div>
-            `
-        )}
-        <div class="circle"></div>
-        ${visual_feedback
-          ? html` <div class="feedback">
-              <ha-icon class="up_action" icon="mdi:arrow-up"></ha-icon>
-              <ha-icon class="down_action" icon="mdi:arrow-down"></ha-icon>
-              <ha-icon class="left_action" icon="mdi:arrow-left"></ha-icon>
-              <ha-icon class="right_action" icon="mdi:arrow-right"></ha-icon>
-              <ha-icon class="tap_action" icon="mdi:gesture-tap"></ha-icon>
-              <ha-icon class="double_tap_action" icon="mdi:gesture-double-tap"></ha-icon>
-            </div>`
-          : nothing}
+      <div class="touchpad">
+        <div class="circle" />
       </div>
     `
   }
